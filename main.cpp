@@ -24,7 +24,7 @@ struct multi_threaded_input_arg
 };
 
 
-
+// Shared memory for all threads
 vector<sem_t> semaphores;
 vector<multi_threaded_input_arg> input_arg;
 vector<pthread_t> thread_storage;
