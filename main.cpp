@@ -10,12 +10,14 @@ using namespace std;
 static bool primitive_semaphore = false;
 
 
+// Instructions for the thread
 struct instruction_data
 {
     size_t row;
     size_t column;
 };
 
+// Argument to be passed into each thread
 struct multi_threaded_input_arg
 {
     size_t id;
@@ -50,7 +52,6 @@ void* calculate_matrix_product_at_index(void* parameters)
 {
     multi_threaded_input_arg* arg = static_cast<multi_threaded_input_arg*>(parameters);
 
-    std::cout <<"ARG ID " << arg->id << std::endl;
     sem_wait(&semaphores[arg->id]);
 
 
@@ -67,13 +68,18 @@ void* calculate_matrix_product_at_index(void* parameters)
     }
 
     C[row][column] = matrix_product;
-    std::cout << instructions[arg->id].row << "  " << instructions[arg->id].column << std::endl;
     return nullptr;
 }
 
-void multi_threaded_matrix_multiplication(vector<vector<int>>& A, vector<vector<int>>& B)
+void multi_threaded_matrix_multiplication()
 {
-    // Check if number of columns in A is equal to number of rows in B
+    // Basic idea: Have semaphores and instructions for each thread
+    // The question specifies that instructions must be sent from the main thread to the executing thread
+    // So initialize each thread, create an associated semaphore, and make the thread block on the semaphore
+    // Till the main thread fills in the instructions
+    // Once the main thread has filled in the instructions, release the semaphore
+
+    // Check if number of columns in A is equal to number of rows in B (just in case)
     if(A[0].size() != B.size())
     {
         cout << "ERROR: The dimensions of the matrices do not match!\n";
@@ -81,9 +87,6 @@ void multi_threaded_matrix_multiplication(vector<vector<int>>& A, vector<vector<
 
     int product_rows = A.size();
     int product_cols = B[0].size();
-
-    std::cout << "Product Rows " << product_rows << std::endl;
-    std::cout << "Product Cols " << product_cols << std::endl;
 
     C.resize(product_rows, vector<int>(product_cols));
 
@@ -112,8 +115,8 @@ void multi_threaded_matrix_multiplication(vector<vector<int>>& A, vector<vector<
             sem_post(&semaphores[current_index]);
         }
     }
-    std::cout << "DONE\n";
 
+    // Wait till all the threads finish executing
     for (size_t i = 0; i < thread_storage.size(); i++)
     {
         pthread_join(thread_storage[i], nullptr);
@@ -138,7 +141,7 @@ int main(int argc, char* argv[])
 {
     if (argc != 4)
     {
-        std::cout << "Expected call of the format multi-threaded-matrix <p> <q> <r>!\n";
+        cout << "Expected call of the format multi-threaded-matrix <p> <q> <r>!\n";
         return 0;
     }
 
@@ -152,6 +155,7 @@ int main(int argc, char* argv[])
     assert(q > 0 && q < 100);
     assert(r > 0 && r < 100);
 
+    // Create matrices
     create_matrix(A, p, q);
     create_matrix(B, q, r);
 
@@ -161,7 +165,8 @@ int main(int argc, char* argv[])
     cout << "MATRIX B:\n";
     print_matrix(B);
 
-    multi_threaded_matrix_multiplication(A, B);
+
+    multi_threaded_matrix_multiplication();
 
     cout << "MATRIX C:\n";
     print_matrix(C);
