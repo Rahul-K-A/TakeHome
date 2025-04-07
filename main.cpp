@@ -4,15 +4,38 @@
 #include <vector>
 #include <random>
 #include <cassert>
+#include <semaphore.h>
 
 using namespace std;
 static bool primitive_semaphore = false;
 
+struct multi_threaded_input_arg
+{
+    const vector<vector<int>>* A;
+    const vector<vector<int>>* B;
+    size_t semaphore_id;
+    multi_threaded_input_arg() :  A(nullptr), B(nullptr){}; 
+};
 
-vector<vector<int>> create_matrix(int rows, int columns)
+
+struct multi_threaded_message
+{
+    size_t row;
+    size_t column;
+};
+
+
+vector<sem_t> semaphores;
+vector<multi_threaded_input_arg> input_arg;
+vector<pthread_t> thread_storage;
+
+vector<vector<int>> A,B,C;
+
+void create_matrix(vector<vector<int>>& result, int rows, int columns)
 {
     // Pre-allocate matrix
-    vector<vector<int>> result(rows, std::vector<int>(columns));
+    result.resize(rows, std::vector<int>(columns));
+
     for (int i = 0; i < rows; i++ )
     {   
         for (int j =0; j < columns; j++)
@@ -21,12 +44,14 @@ vector<vector<int>> create_matrix(int rows, int columns)
             result[i][j] = rand() % 10;
         }
     }
-    return result;
 }
 
 
 void* calculate_matrix_product_at_index(void* parameters)
 {
+    multi_threaded_input_arg* arg = static_cast<multi_threaded_input_arg*>(parameters);
+
+    sem_wait(&semaphores[arg->semaphore_id]);
     std::cout << "Hello\n";
     return nullptr;
 }
@@ -45,12 +70,27 @@ vector<vector<int>> multi_threaded_matrix_multiplication(vector<vector<int>>& A,
     std::cout << "Product Rows " << product_rows << std::endl;
     std::cout << "Product Cols " << product_cols << std::endl;
 
-
-    vector<pthread_t> thread_storage(product_rows * product_cols);
+    C.resize(product_rows * product_cols);
+    thread_storage.resize(product_rows * product_cols);
     vector<vector<int>> result(product_rows * product_cols);
+    input_arg.resize(product_rows * product_cols);
+    semaphores.resize(product_rows * product_cols);
+
     for (size_t i = 0; i < thread_storage.size(); i++)
     {
-        pthread_create(&thread_storage[i], NULL, &calculate_matrix_product_at_index, NULL);
+        // Give each thread an
+        input_arg[i].A = &A;
+        input_arg[i].B = &B;
+        input_arg[i].semaphore_id = i;
+        assert( sem_init(&semaphores[i], 0, 1) == 0 );
+
+        pthread_create(&thread_storage[i], NULL, &calculate_matrix_product_at_index, &input_arg[i]);
+    }
+
+    for (size_t i = 0; i < thread_storage.size(); i++)
+    {
+        sem_post(&semaphores[i]);
+        pthread_join(thread_storage[i], nullptr);
     }
 
     return result;
@@ -75,10 +115,10 @@ int main(int argc, char* argv[])
     assert(q > 0 && q < 100);
     assert(r > 0 && r < 100);
 
-    vector<vector<int>> A = create_matrix(p, q);
-    vector<vector<int>> B = create_matrix(q, r);
+    create_matrix(A, p, q);
+    create_matrix(B, q, r);
 
-    vector<vector<int>> C = multi_threaded_matrix_multiplication(A, B);
+    multi_threaded_matrix_multiplication(A, B);
 
     return 1;
 
