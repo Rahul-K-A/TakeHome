@@ -1,5 +1,5 @@
 #include <iostream>
-#include <thread>
+#include <pthread.h>
 #include <cmath>
 #include <vector>
 #include <random>
@@ -21,12 +21,14 @@ vector<vector<int>> create_matrix(int rows, int columns)
             result[i][j] = rand() % 10;
         }
     }
+    return result;
 }
 
 
-void calculate_matrix_product_at_index(int row, int column, const vector<vector<int>>& A, vector<vector<int>>)
+void* calculate_matrix_product_at_index(void* parameters)
 {
-
+    std::cout << "Hello\n";
+    return nullptr;
 }
 
 vector<vector<int>> multi_threaded_matrix_multiplication(vector<vector<int>>& A, vector<vector<int>>& B)
@@ -37,7 +39,21 @@ vector<vector<int>> multi_threaded_matrix_multiplication(vector<vector<int>>& A,
         cout << "ERROR: The dimensions of the matrices do not match!\n";
     }
 
-    vector<thread> thread_storage()
+    int product_rows = A.size();
+    int product_cols = B[0].size();
+
+    std::cout << "Product Rows " << product_rows << std::endl;
+    std::cout << "Product Cols " << product_cols << std::endl;
+
+
+    vector<pthread_t> thread_storage(product_rows * product_cols);
+    vector<vector<int>> result(product_rows * product_cols);
+    for (size_t i = 0; i < thread_storage.size(); i++)
+    {
+        pthread_create(&thread_storage[i], NULL, &calculate_matrix_product_at_index, NULL);
+    }
+
+    return result;
 }
 
 
