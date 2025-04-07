@@ -33,7 +33,7 @@ vector<vector<int>> A,B, C;
 void create_matrix(vector<vector<int>>& result, int rows, int columns)
 {
     // Pre-allocate matrix
-    result.resize(rows, std::vector<int>(columns));
+    result.resize(rows, vector<int>(columns));
     
     for (int i = 0; i < rows; i++ )
     {   
@@ -85,11 +85,8 @@ void multi_threaded_matrix_multiplication(vector<vector<int>>& A, vector<vector<
     std::cout << "Product Rows " << product_rows << std::endl;
     std::cout << "Product Cols " << product_cols << std::endl;
 
-    C.resize(product_rows);
-    for (auto& row :C)
-    {
-        row.resize(product_cols);
-    }
+    C.resize(product_rows, vector<int>(product_cols));
+
     thread_storage.resize(product_rows * product_cols);
     input_arg.resize(product_rows * product_cols);
     semaphores.resize(product_rows * product_cols);
@@ -129,7 +126,7 @@ void print_matrix(vector<vector<int>>& mat)
 {
     for(size_t i =0 ; i < mat.size(); i++ )
     {
-        for(size_t j = 0; j < mat.size(); j++)
+        for(size_t j = 0; j < mat[0].size(); j++)
         {
             cout << mat[i][j] << " ";
         }
@@ -158,13 +155,13 @@ int main(int argc, char* argv[])
     create_matrix(A, p, q);
     create_matrix(B, q, r);
 
-    multi_threaded_matrix_multiplication(A, B);
-
     cout << "MATRIX A:\n";
     print_matrix(A);
 
     cout << "MATRIX B:\n";
     print_matrix(B);
+
+    multi_threaded_matrix_multiplication(A, B);
 
     cout << "MATRIX C:\n";
     print_matrix(C);
